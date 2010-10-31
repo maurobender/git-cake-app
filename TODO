@@ -1,8 +1,6 @@
 TODO:
 [More Priority]
-	* Model Tag to manage the repository tags.
 	* Model Branch to manage the repository branchs.
-	* Move all the functions that have an "exec('git_command')" inside them to the git library.
 	* Make the associations between models work.
 	* Rename the models to "GitModel" format for prevent posible problems with others models in the application.
 	

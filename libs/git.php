@@ -160,8 +160,15 @@
 			}
 			
 			foreach($files as $file_k => $file_v) {
+				$file_v['path'] = ($path != '' ? $path . '/' . $file_v['path'] : $file_v['path']);
+				
+				if($file_v['type'] == 'blob')
+					$files[$file_k]['content'] = $this->getFileContents($repository, $commit . ':' . $file_v['path']);
+				else
+					$files[$file_k]['content'] = '';
+				
 				$files[$file_k]['file'] = basename($file_v['path']);
-				$files[$file_k]['path'] = dirname($file_v['path']);
+				$files[$file_k]['path'] = (dirname($file_v['path']) == '.' ? '' : dirname($file_v['path']));
 				$files[$file_k]['commit'] = $commit;
 			}
 			
@@ -178,33 +185,12 @@
 			$name = (isset($conditions['name']) ? $conditions['name'] : '');
 			$repo = $this->config['repo_directory'] . $conditions['repository'] . $this->config['repo_suffix'];
 			$tags = $this->parse($repo, 'tags', $name);
-			return $tags;
-		}
-		
-		public function lsTree($repo, $tree, $file = '', $recursive = false) {
-			$out = array();
-			$cmd = "GIT_DIR=" .$repo . " {$this->config['git_binary']} ls-tree " . $tree . " 2>&1";
 			
-			if($recursive)
-				$cmd .= ' -r -t';
-			
-			if($file != '')
-				$cmd .= " | grep {$file}";
-			
-			//Have to strip the \t between hash and file
-			$cmd .= " | sed -e 's/\t/ /g'";
-
-			exec($cmd, &$out);
-
-			$results = array();
-			foreach ($out as $line) {
-					$results[] = array_combine(
-						array('perm', 'type', 'hash', 'path'),
-						explode(" ", $line, 4)
-					);
+			foreach($tags as $tag_k => $tag_v) {
+				$tags[$tag_k]['repository'] = $conditions['repository'];
 			}
 			
-			return $results;
+			return $tags;
 		}
 
     public function getOwner($path) {
@@ -341,7 +327,7 @@
 			'params' => array()
 		), $options);
 		
-		if ($options['count'] == 1) {
+		if (isset($options['count']) && $options['count'] == 1) {
 			$query = $options['since'];
 		} else {
 			$query = implode('..', array($options['since'], $options['until']));
@@ -426,5 +412,39 @@
 		$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-list --pretty=format:'date: %at' --header HEAD --max-count=1 | grep date | cut -d' ' -f2-3";
 		$date = exec($cmd, &$out);
 		return date('d-m-Y', (int) $date);
+	}
+	
+	private function lsTree($repo, $tree, $file = '', $recursive = false) {
+		$out = array();
+		$cmd = "GIT_DIR=" .$repo . " {$this->config['git_binary']} ls-tree " . $tree . " 2>&1";
+		
+		if($recursive)
+			$cmd .= ' -r -t';
+		
+		if($file != '')
+			$cmd .= " | grep {$file}";
+		
+		//Have to strip the \t between hash and file
+		$cmd .= " | sed -e 's/\t/ /g'";
+
+		exec($cmd, &$out);
+
+		$results = array();
+		foreach ($out as $line) {
+				$results[] = array_combine(
+					array('perm', 'type', 'hash', 'path'),
+					explode(" ", $line, 4)
+				);
+		}
+		
+		return $results;
+	}
+	
+	private function getFileContents($repo, $tree) {
+		$out = array();
+		$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} show " . $tree;
+		exec($cmd, &$out);
+		$content = implode($out, "\n");
+		return $content;
 	}
 }

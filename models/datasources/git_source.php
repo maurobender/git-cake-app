@@ -1,8 +1,9 @@
 <?php
-	/**
-	* Git DataSource
-	*/
 	App::import('Lib', 'Git');
+	
+	/**
+	* @brief Git DataSource. (Read-Only Datasource)
+	*/
 	class GitSource extends DataSource {
 		protected $_schema = array(
 			'repositories' => array(
@@ -88,6 +89,9 @@
 					'null' => true,
 					'length' => 10,
 				),
+				'content' => array(
+					'type' => 'text'
+				),
 				'path' => array(
 					'type' => 'string',
 					'null' => true,
@@ -117,6 +121,11 @@
 					'length' => 100,
 				),
 				'name' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 100,
+				),
+				'repository' => array(
 					'type' => 'string',
 					'null' => true,
 					'length' => 100,
