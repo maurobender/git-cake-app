@@ -120,6 +120,9 @@
 			return $files;
 		}
 		
+		/**
+		* @brief Return the repository tags.
+		*/
 		public function getTags($conditions = array(), $limit = 0) {
 			if(!isset($conditions['repository']))
 				return array();
