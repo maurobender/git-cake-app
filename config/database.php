@@ -82,6 +82,13 @@ class DATABASE_CONFIG {
 		'database' => 'database_name',
 		'prefix' => '',
 	);
+	
+	var $git = array(
+		'datasource' => 'git',
+		'repo_directory' => '/srv/http/git-php/repositories/',
+		'repo_suffix' => '.git',
+		'git_binary' => '/usr/bin/git'
+	);
 
 	var $test = array(
 		'driver' => 'mysql',
