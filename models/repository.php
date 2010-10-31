@@ -8,7 +8,8 @@
 				'classname' => 'Commit',
 				'limit' => 5
 			),
-			'GitFile'
+			'GitFile',
+			'GitTag'
 		);
 	}
 ?>

@@ -108,13 +108,27 @@
 					'null' => true,
 					'length' => 200
 				)
+			),
+			'git_tags' => array(
+				'hash' => array(
+					'type' => 'string',
+					'null' => true,
+					'key' => 'primary',
+					'length' => 100,
+				),
+				'name' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 100,
+				),
 			)
 		);
 		
 		protected $_model_table_map = array(
 			'Repository' => 'repositories',
 			'Commit' => 'commits',
-			'GitFile' => 'git_files'
+			'GitFile' => 'git_files',
+			'GitTag' => 'git_tags'
 		);
 		
 		public function __construct($config) {
@@ -129,6 +143,7 @@
 		
 		public function read($model, $queryData = array()) {
 			$git = new Git($this->_config);
+			$results = array();
 			
 			switch($model->name) {
 				case 'Repository':
@@ -160,6 +175,14 @@
 					
 					foreach($files as $file) {
 						$temp['GitFile'] = $file;
+						$results[] = $temp;
+					}
+					break;
+				case 'GitTag':
+					$tags = $git->getTags($queryData['conditions']);
+					
+					foreach($tags as $tag) {
+						$temp['GitTag'] = $tag;
 						$results[] = $temp;
 					}
 					break;
@@ -200,11 +223,7 @@
 		function repoPath($proj) {
 			return Git::repoPath($proj);
 		}
-
-		function getTags($proj) {
-			return Git::parse($this->_config, $proj, 'tags');
-		}
-
+		
 		function getBranches($proj) {
 			return Git::parse($this->_config, $proj, 'branches');
 		}
