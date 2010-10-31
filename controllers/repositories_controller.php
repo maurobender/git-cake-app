@@ -3,10 +3,9 @@
 		var $name = 'Repositories';
 		
 		function index() {
-			$this->set('repositories', $this->Repository->find('first'));
-			$commits = $this->Repository->Commit->find('first', array('conditions' => array('repository' => 'project2')));
-			debug($commits);
-			$this->set('commits', $commits);
+			$this->set('repositories', $this->Repository->find('all'));
+			$this->set('commits', $this->Repository->Commit->find('all', array('conditions' => array('repository' => 'project2'), 'limit' => 4)));
+			$this->set('files', $this->Repository->GitFile->find('all', array('conditions' => array('repository' => 'gitosis-admin', 'path' => 'keydir'))));
 		}
 	}
 ?>

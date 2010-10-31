@@ -12,6 +12,12 @@
 					'key' => 'primary',
 					'length' => 100,
 				),
+				'id' => array(
+					'type' => 'string',
+					'null' => true,
+					'key' => 'primary',
+					'length' => 100,
+				),
 				'path' => array(
 					'type' => 'string',
 					'null' => true,
@@ -40,7 +46,7 @@
 					'key' => 'primary',
 					'length' => 100,
 				),
-				'parenta' => array(
+				'parent' => array(
 					'type' => 'array(string)',
 					'null' => true
 				),
@@ -64,12 +70,51 @@
 					'type' => 'datetime',
 					'null' => true
 				),
+			),
+			'git_files' => array(
+				'hash' => array(
+					'type' => 'string',
+					'null' => true,
+					'key' => 'primary',
+					'length' => 100,
+				),
+				'perm' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 10,
+				),
+				'type' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 10,
+				),
+				'path' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 500
+				),
+				'name' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 200,
+				),
+				'commit' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 200
+				),
+				'repository' => array(
+					'type' => 'string',
+					'null' => true,
+					'length' => 200
+				)
 			)
 		);
 		
 		protected $_model_table_map = array(
 			'Repository' => 'repositories',
-			'Commit' => 'commits'
+			'Commit' => 'commits',
+			'GitFile' => 'git_files'
 		);
 		
 		public function __construct($config) {
@@ -97,8 +142,6 @@
 							'description'	=> file_get_contents("{$repository_path}description"),
 							'owner'			=> $this->fileOwner($repository_path),
 							'last_change'	=> $this->lastChange($repository_path),
-							'today' => $stats['today'],
-							'total' => $stats['total']
 						);
 						
 						$results[] = $repo;
@@ -109,6 +152,14 @@
 					
 					foreach($commits as $commit) {
 						$temp['Commit'] = $commit;
+						$results[] = $temp;
+					}
+					break;
+				case 'GitFile':
+					$files = $git->getFiles($queryData['conditions']);
+					
+					foreach($files as $file) {
+						$temp['GitFile'] = $file;
 						$results[] = $temp;
 					}
 					break;
@@ -131,43 +182,9 @@
 			
 			return $result;
 		}
-		
-/*		function findAll() {
-			list($repositories, $valid) = Git::loadRepositories($this->_config);
-
-			$repos = array();
-			foreach ($repositories as $repository) {
-					$repo = array(
-						'link'          => $this->link($repository),
-						'description'   => file_get_contents("{$repository}{$this->_config['repo_suffix']}description"),
-						'owner'         => $this->fileOwner($repository),
-						'last_change'   => $this->lastChange($repository),
-						'download'      => $this->link($repository, array('download' => true)),
-					);
-					$stats = $this->getStats($repository, 0, 0);
-					$repo['today'] = $stats['today'];
-					$repo['total'] = $stats['total'];
-					$repos[] = $repo;
-			}
-			return $repos;
-		}*/
-
-		function link($repo, $options = array()) {
-			$options = array_merge(array(
-					'download' => false,
-					'tag' => 'HEAD',
-			), $options);
-
-			$path = basename($repo);
-			if ($options['download']) {
-					return sprintf('<a href="/%s/downloads/%s">snapshot</a>', $path, $options['tag']);
-			}
-			return sprintf('<a href="/%s">%s</a>', $path, $path);
-		}
 
 		function fileOwner($repo) {
 			$out = array();
-			//$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->_config['git_binary']} rev-list --header --max-count=1 HEAD 2>&1 | grep -a committer | cut -d' ' -f2-3";
 			$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->_config['git_binary']} rev-list --pretty=format:'commiter: %ce' --max-count=1 HEAD 2>&1 | grep commiter | cut -c11-";
 			$own = exec($cmd, &$out);
 			return $own;
@@ -175,7 +192,7 @@
 
 		function lastChange($repo) {
 			$out = array();
-			$cmd = "GIT_DIR=" . escapeshellarg($repo . $this->_config['repo_suffix']) . " {$this->_config['git_binary']} rev-list  --header --max-count=1 HEAD 2>&1 | grep -a committer | cut -d' ' -f5-6";
+			$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->_config['git_binary']} rev-list --pretty=format:'date: %at' --header HEAD --max-count=1 | grep date | cut -d' ' -f2-3";
 			$date = exec($cmd, &$out);
 			return date('d-m-Y', (int) $date);
 		}

@@ -65,6 +65,11 @@
 			if($limit > 0)
 				$options['count'] = $limit;
 			
+			if(isset($conditions['hash'])) {
+				$options['since'] = $conditions['hash'];
+				$options['count'] = 1;
+			}
+			
 			if(isset($conditions['repository'])) {
 				$repo_path = $this->config['repo_directory'] . $conditions['repository'] . $this->config['repo_suffix'];
 				$results = $this->getLastNCommits($repo_path, $options);
@@ -82,6 +87,60 @@
 						
 					$results += $temp;
 				}
+			}
+			
+			return $results;
+		}
+		
+		public function getFiles($conditions = array(), $limit = 0) {
+			$files = array();
+			
+			$commit = (isset($conditions['commit']) ? $conditions['commit'] : 'HEAD');
+			$repository = '';
+			if(isset($conditions['repository']))
+				$repository = $this->config['repo_directory'] . $conditions['repository'] . $this->config['repo_suffix'];
+			$path = (isset($conditions['path']) ? $conditions['path'] : '');
+			$name = (isset($conditions['name']) ? $conditions['name'] : '');
+			$recursive = $name ==  '';
+			
+			if($repository == '') {
+			} else {
+				$files = $this->lsTree($repository, $commit . ':' . $path, $name, $recursive);
+				
+				foreach($files as $file_k => $file_v)
+					$files[$file_k]['repository'] = $conditions['repository'];
+			}
+			
+			foreach($files as $file_k => $file_v) {
+				$files[$file_k]['file'] = basename($file_v['path']);
+				$files[$file_k]['path'] = dirname($file_v['path']);
+				$files[$file_k]['commit'] = $commit;
+			}
+			
+			return $files;
+		}
+		
+		public function lsTree($repo, $tree, $file = '', $recursive = false) {
+			$out = array();
+			$cmd = "GIT_DIR=" .$repo . " {$this->config['git_binary']} ls-tree " . $tree . " 2>&1";
+			
+			if($recursive)
+				$cmd .= ' -r -t';
+			
+			if($file != '')
+				$cmd .= " | grep {$file}";
+			
+			//Have to strip the \t between hash and file
+			$cmd .= " | sed -e 's/\t/ /g'";
+
+			exec($cmd, &$out);
+
+			$results = array();
+			foreach ($out as $line) {
+					$results[] = array_combine(
+						array('perm', 'type', 'hash', 'path'),
+						explode(" ", $line, 4)
+					);
 			}
 			
 			return $results;
@@ -172,8 +231,8 @@
         return false;
     }
 
-    public function shortlogs($config, $proj) {
-        return self::getLastNCommits($config, $proj);
+    public function shortlogs($proj) {
+        return self::getLastNCommits($proj);
     }
 
     public function commit($config, $proj, $commit) {
@@ -184,22 +243,7 @@
         return self::getLastNCommits($config, $proj, $options);
     }
 
-    public static function lsTree($config, $proj, $tree) {
-        $out = array();
-        //Have to strip the \t between hash and file
-        $cmd = "GIT_DIR=" . self::$repos[$proj] . $config['repo_suffix'] . " {$config['git_binary']} ls-tree " . $tree . " 2>&1 | sed -e 's/\t/ /g'";
-
-        exec($cmd, &$out);
-
-        $results = array();
-        foreach ($out as $line) {
-            $results[] = array_combine(
-                array('perm', 'type', 'hash', 'file'),
-                explode(" ", $line, 4)
-            );
-        }
-        return $results;
-    }
+    
 
     public static function diff($config, $proj, $commit) {
         $out = array();
