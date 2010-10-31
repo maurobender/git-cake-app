@@ -158,6 +158,19 @@
 			return $files;
 		}
 		
+		/**
+		* @brief Return the repository tags.
+		*/
+		public function getTags($conditions = array(), $limit = 0) {
+			if(!isset($conditions['repository']))
+				return array();
+			
+			$name = (isset($conditions['name']) ? $conditions['name'] : '');
+			$repo = $this->config['repo_directory'] . $conditions['repository'] . $this->config['repo_suffix'];
+			$tags = $this->parse($repo, 'tags', $name);
+			return $tags;
+		}
+		
 		public function lsTree($repo, $tree, $file = '', $recursive = false) {
 			$out = array();
 			$cmd = "GIT_DIR=" .$repo . " {$this->config['git_binary']} ls-tree " . $tree . " 2>&1";
@@ -191,19 +204,27 @@
         return $own;
     }
 
-    function parse($config, $proj, $what) {
-        $cmd1 = "GIT_DIR=" . self::$repos[$proj] . $config['repo_suffix'] . " {$config['git_binary']} rev-parse  --symbolic --" . escapeshellarg($what) . "  2>&1";
-        $out1 = array();
-        $bran = array();
-        exec($cmd1, &$out1);
-        for($i = 0; $i < count($out1); $i++) {
-            $cmd2="GIT_DIR=" . self::$repos[$proj] . $config['repo_suffix'] . " {$config['git_binary']} rev-list --max-count=1 " . escapeshellarg($out1[$i]) . " 2>&1";
-            $out2 = array();
-            exec($cmd2, &$out2);
-            $bran[$out1[$i]] = $out2[0];
-        }
-        return $bran;
-    }
+	private function parse($repo, $what, $pattern = '' ) {
+		$cmd1 = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-parse  --symbolic --" . escapeshellarg($what) . "=*" . $pattern . "*  2>&1";
+		$out1 = array();
+		
+		$results = array();
+		exec($cmd1, &$out1);
+		for($i = 0; $i < count($out1); $i++) {
+				$temp = array('hash' => '', 'name' => '');
+				
+				$cmd2="GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-list --max-count=1 " . escapeshellarg($out1[$i]) . " 2>&1";
+				$out2 = array();
+				exec($cmd2, &$out2);
+				
+				$temp['hash'] = $out2[0];
+				$temp['name'] = $out1[$i];
+				
+				$results[] = $temp;
+		}
+		
+		return $results;
+	}
 
     public function stats($repo, $inc = false, $fbasename = 'counters') {
         $rtoday = 0;
