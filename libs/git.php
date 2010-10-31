@@ -3,6 +3,15 @@
 		protected $repos;
 		protected $config;
 		
+		/**
+		* @brief The constructor.
+		* @param array <b>$condig</b> The configuration needed for the class:
+		*	<ul>
+		*		<li><i>repo_directory: </i> The repositories root folder path.</li>
+		*		<li><i>repo_suffix: </i> The repositories suffix, commonly '.git'.</li>
+		*		<li><i>git_binary: </i> The path to the git binary excutable.</li>
+		*	</ul>
+		*/
 		public function __construct($config) {
 			if(!in_array('repo_directory', array_keys($config))
 				|| !in_array('repo_suffix', array_keys($config))
@@ -15,9 +24,20 @@
 		}
 		
 		/**
-		* @brief Get the repositories wich are in the repositories root directory.
+		* @brief Return the repositories wich are in the repositories root directory.
+		* @param array <b>$conditions</b> Filters for the repositories:
+		*	<ul>
+		*		<li><i>repository: </i> Repository name.</li>
+		*	</ul>
+		* @param integer <b>$limit</b> The count of repositories to return.
+		* @return array An array of repositories.
+		*
+		* TODO The <b>$limits</b> actually doesn't do anything. Make it work.
+		* TODO The <b>$conditions</b> array actually doesn't do anything. Make it work.
+		* TODO Return an array with the more information, not only the repositories
+		*	names and paths.
 		*/
-		public function getRepositories($conditions = array(), $limit = -1) {
+		public function getRepositories($conditions = array(), $limit = 0) {
 			if (!isset($this->config['repo_directory'])) return array();
 			
 			$repoDir = $this->config['repo_directory'];
@@ -27,7 +47,6 @@
 			$repos = array();
 			// Open the repositories directory.
 			if ($handle = opendir($repoDir)) {
-				
 				// Walk trought the repositories.
 				while (false !== ($file = readdir($handle))) {
 					
@@ -56,7 +75,14 @@
 		
 		
 		/**
-		* @brief Get the commits for all the projects or for one particular project.
+		* @brief Return the commits for all the projects or for one particular project.
+		* @param array <b>$conditions</b> Filters for the commits:
+		*	<ul>
+		*		<li><i>repository: </i> Repository that the commit(s) belongs.</li>
+		*		<li><i>hash: </i> Hash of the commit.</li>
+		*	</ul>
+		* @param integer <b>$limit</b> The count of commits to return.
+		* @return array An array of commits.
 		*/
 		public function getCommits($conditions = array(), $limit = 0) {
 			$results = array();
@@ -92,6 +118,18 @@
 			return $results;
 		}
 		
+		/**
+		* @brief Return the files of an repository.
+		* @param array <b>$conditions</b> Filters for the files:
+		*	<ul>
+		*		<li><i>commit: </i> Commit that the file(s) belongs.</li>
+		*		<li><i>repository: </i> Repository that the file(s) belongs.</li>
+		*		<li><i>path: </i> The path of the folder that the(s) file belongs.</li>
+		*		<li><i>name: </i> Name of the file.</li>
+		*	</ul>
+		* @param integer <b>$limit</b> The count of files to return.
+		* @return array An array of files.
+		*/
 		public function getFiles($conditions = array(), $limit = 0) {
 			$files = array();
 			
