@@ -34,8 +34,6 @@
 		*
 		* TODO The <b>$limits</b> actually doesn't do anything. Make it work.
 		* TODO The <b>$conditions</b> array actually doesn't do anything. Make it work.
-		* TODO Return an array with the more information, not only the repositories
-		*	names and paths.
 		*/
 		public function getRepositories($conditions = array(), $limit = 0) {
 			if (!isset($this->config['repo_directory'])) return array();
@@ -55,14 +53,14 @@
 					
 					if ($file[0] != '.' && is_dir($repo_path)) {
 						if (is_dir($repo_path)) {
-								$headFile = "HEAD";
-								if (substr($repo_path, -1) != "/") {
-									$headFile = "/{$headFile}";
-								}
-								if (file_exists($repo_path . $headFile)
-								&& $this->getOwner($repo_path) != NULL) {
-									$repos[trim($repo)] = trim("{$repo_path}/");
-								}
+							$headFile = "HEAD";
+							if (substr($repo_path, -1) != "/") {
+								$headFile = "/{$headFile}";
+							}
+							if (file_exists($repo_path . $headFile)
+							&& $this->getOwner($repo_path) != NULL) {
+								$repos[trim($repo)] = trim("{$repo_path}/");
+							}
 						}
 					}
 				}
@@ -70,7 +68,19 @@
 				closedir($handle);
 			}
 			
-			return $repos;
+			foreach ($repos as $repository => $repository_path) {
+				$repo = array(
+					'name'			=> $repository,
+					'path'			=> $repository_path,
+					'description'	=> file_get_contents("{$repository_path}description"),
+					'owner'			=> $this->fileOwner($repository_path),
+					'last_change'	=> $this->lastChange($repository_path),
+				);
+				
+				$results[] = $repo;
+			}
+			
+			return $results;
 		}
 		
 		
@@ -225,125 +235,104 @@
 		
 		return $results;
 	}
+	
+	public function stats($repo, $inc = false, $fbasename = 'counters') {
+		$rtoday = 0;
+		$rtotal = 0;
+		$now = floor(time()/24/60/60); // number of days since 1970
 
-    public function stats($repo, $inc = false, $fbasename = 'counters') {
-        $rtoday = 0;
-        $rtotal = 0;
-        $now = floor(time()/24/60/60); // number of days since 1970
+		if (!is_dir(CACHE)) {
+			mkdir(CACHE);
+			chmod(CACHE, 0777);
+		}
 
-        if (!is_dir(CACHE)) {
-            mkdir(CACHE);
-            chmod(CACHE, 0777);
-        }
+		$fname = CACHE . basename($repo);
 
-        $fname = CACHE . basename($repo);
+		if (!is_dir($fname)) {
+			mkdir($fname);
+			chmod($fname, 0777);
+		}
 
-        if (!is_dir($fname)) {
-            mkdir($fname);
-            chmod($fname, 0777);
-        }
+		$fname = CACHE . basename($repo) . "/" . $fbasename . "-" . basename($repo, ".git");
+		$fd = 0;
 
-        $fname = CACHE . basename($repo) . "/" . $fbasename . "-" . basename($repo, ".git");
-        $fd = 0;
+		//$fp1 = sem_get(fileinode($fname), 1);
+		//sem_acquire($fp1);
 
-        //$fp1 = sem_get(fileinode($fname), 1);
-        //sem_acquire($fp1);
+		if (file_exists($fname)) {
+			$file = fopen($fname, "r+"); // open the counter file
+		} else {
+			$file = FALSE;
+		}
+		if ($file != FALSE) {
+			fseek($file, 0); // rewind the file to beginning
+			// read out the counter value
+			fscanf($file, "%d %d %d", $fd, $rtoday, $rtotal);
+			if($fd != $now) {
+					$rtoday = 0;
+					$fd = $now;
+			}
+			if ($inc) {
+					$rtoday++;
+					$rtotal++;
+			}
+			fclose($file);
+		}
+		// uncomment the next lines to erase the counters
+		//$rtoday = 0;
+		//$rtotal = 0;
+		$file = fopen($fname, "w+"); // open or create the counter file
+		// write the counter value
+		fseek($file, 0); // rewind the file to beginning
+		fwrite($file, "$fd $rtoday $rtotal\n");
+		fclose($file);
+		chmod($fname, 0666);
+		return array('today' => $rtoday, 'total' => $rtotal);
+	}
+	
+	public static function diff($config, $proj, $commit) {
+		$out = array();
+		$cmd = "GIT_DIR=" . self::$repos[$proj] . $config['repo_suffix'] . " {$config['git_binary']} show {$commit} --format=\"%b\" 2>&1";
+		exec($cmd, &$out);
 
-        if (file_exists($fname)) {
-            $file = fopen($fname, "r+"); // open the counter file
-        } else {
-            $file = FALSE;
-        }
-        if ($file != FALSE) {
-            fseek($file, 0); // rewind the file to beginning
-            // read out the counter value
-            fscanf($file, "%d %d %d", $fd, $rtoday, $rtotal);
-            if($fd != $now) {
-                $rtoday = 0;
-                $fd = $now;
-            }
-            if ($inc) {
-                $rtoday++;
-                $rtotal++;
-            }
-            fclose($file);
-        }
-        // uncomment the next lines to erase the counters
-        //$rtoday = 0;
-        //$rtotal = 0;
-        $file = fopen($fname, "w+"); // open or create the counter file
-        // write the counter value
-        fseek($file, 0); // rewind the file to beginning
-        fwrite($file, "$fd $rtoday $rtotal\n");
-        fclose($file);
-        chmod($fname, 0666);
-        return array('today' => $rtoday, 'total' => $rtotal);
-    }
-
-    public function repoPath($proj) {
-        foreach (self::$repos as $repo) {
-            $path = basename($repo);
-            if ($path == $proj) {
-                return $repo;
-            }
-        }
-        return false;
-    }
-
-    public function shortlogs($proj) {
-        return self::getLastNCommits($proj);
-    }
-
-    public function commit($config, $proj, $commit) {
-        $options = array(
-            'since' => $commit,
-            'count' => 1
-        );
-        return self::getLastNCommits($config, $proj, $options);
-    }
-
-    
-
-    public static function diff($config, $proj, $commit) {
-        $out = array();
-        $cmd = "GIT_DIR=" . self::$repos[$proj] . $config['repo_suffix'] . " {$config['git_binary']} show {$commit} --format=\"%b\" 2>&1";
-        exec($cmd, &$out);
-
-        $diff = false;
-        $summary = array();
-        $file = array();
-        $results = array();
-        foreach ($out as $line) {
-            if (empty($line)) continue;
-            if ($diff) {
-                if (substr($line, 0, 4) === 'diff') {
-                    $results[] = array(
-                        'file' => implode("\n", $file),
-                        'summary' => implode("\n", $summary),
-                    );
-                    $file       = array();
-                    $summary    = array();
-                    $summary[]  = $line;
-                    $diff       = false;
-                } else {
-                    $file[]     = $line;
-                }
-            } else {
-                if (substr($line, 0, 3) === '@@ ') {
-                    $diff       = true;
-                    $file[]     = $line;
-                } else {
-                    $summary[]  = $line;
-                }
-            }
-        }
-        $results[] = array(
-            'file' => implode("\n", $file),
-            'summary' => implode("\n", $summary),
-        );
-        return $results;
-    }
-
+		$diff = false;
+		$summary = array();
+		$file = array();
+		$results = array();
+		foreach ($out as $line) {
+			if (empty($line)) continue;
+			if ($diff) {
+					if (substr($line, 0, 4) === 'diff') {
+						$results[] = array(
+							'file' => implode("\n", $file),
+							'summary' => implode("\n", $summary),
+						);
+						$file       = array();
+						$summary    = array();
+						$summary[]  = $line;
+						$diff       = false;
+					} else {
+						$file[]     = $line;
+					}
+			} else {
+					if (substr($line, 0, 3) === '@@ ') {
+						$diff       = true;
+						$file[]     = $line;
+					} else {
+						$summary[]  = $line;
+					}
+			}
+		}
+		$results[] = array(
+			'file' => implode("\n", $file),
+			'summary' => implode("\n", $summary),
+		);
+		return $results;
+	}
+	
+	// Utility Funcions
+	//==========================================================================
+	
 	private function getLastNCommits($repo, $options = array()) {
 		$options = array_merge(array(
 			'since' => 'HEAD',
@@ -423,5 +412,19 @@
 		}
 		
 		return $results;
+	}
+	
+	private function fileOwner($repo) {
+		$out = array();
+		$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-list --pretty=format:'commiter: %ce' --max-count=1 HEAD 2>&1 | grep commiter | cut -c11-";
+		$own = exec($cmd, &$out);
+		return $own;
+	}
+
+	private function lastChange($repo) {
+		$out = array();
+		$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-list --pretty=format:'date: %at' --header HEAD --max-count=1 | grep date | cut -d' ' -f2-3";
+		$date = exec($cmd, &$out);
+		return date('d-m-Y', (int) $date);
 	}
 }
