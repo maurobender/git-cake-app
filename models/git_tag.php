@@ -1,11 +1,13 @@
 <?php
 	class GitTag extends AppModel {
 		var $name = 'GitTag';
+		var $primaryKey = 'hash';
 		public $useDbConfig = 'git';
 		
 		var $belongsTo = array(
 			'Repository' => array(
-				'classname' => 'Repository'
+				'className' => 'Repository',
+				'foreignKey' => 'repository'
 			)
 		);
 	}

@@ -42,11 +42,12 @@
 			if (!file_exists($repoDir)) return array();
 			if (!is_dir($repoDir)) return array();
 			
+			$results = array();
 			$repos = array();
 			// Open the repositories directory.
 			if ($handle = opendir($repoDir)) {
 				// Walk trought the repositories.
-				while (false !== ($file = readdir($handle))) {
+				while (false !== ($file = readdir($handle)) && ($limit <= 0 || sizeof($repos) < $limit)) {
 					
 					$repo_path = $repoDir . $file;
 					$repo = str_replace($this->config['repo_suffix'], '', $file);
@@ -58,13 +59,13 @@
 								$headFile = "/{$headFile}";
 							}
 							if (file_exists($repo_path . $headFile)
-							&& $this->getOwner($repo_path) != NULL) {
+							&& $this->getOwner($repo_path) != NULL
+							&& (!isset($conditions['name']) || trim($repo) === $conditions['name'])) {
 								$repos[trim($repo)] = trim("{$repo_path}/");
 							}
 						}
 					}
 				}
-				
 				closedir($handle);
 			}
 			
@@ -411,7 +412,7 @@
 		$out = array();
 		$cmd = "GIT_DIR=" . escapeshellarg($repo) . " {$this->config['git_binary']} rev-list --pretty=format:'date: %at' --header HEAD --max-count=1 | grep date | cut -d' ' -f2-3";
 		$date = exec($cmd, &$out);
-		return date('d-m-Y', (int) $date);
+		return date('d-m-Y h:j:s', (int) $date);
 	}
 	
 	private function lsTree($repo, $tree, $file = '', $recursive = false) {

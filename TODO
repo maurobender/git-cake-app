@@ -1,7 +1,7 @@
 TODO:
 [More Priority]
 	* Model Branch to manage the repository branchs.
-	* Make the associations between models work.
+	* Make the associations between models work. [DONE]
 	* Rename the models to "GitModel" format for prevent posible problems with others models in the application.
 	
 [Minor Priority]

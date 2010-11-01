@@ -83,11 +83,18 @@ class DATABASE_CONFIG {
 		'prefix' => '',
 	);
 	
+	/**
+	* @brief Congiguration for the connection with Git.
+	*  
+	* - repo_directory: The path to git repositories root folder.
+	* - repo_suffix: The suffix of the git repositories.
+	* - git_binary: The path to the git executable.
+	*/
 	var $git = array(
 		'datasource' => 'git',
-		'repo_directory' => '/srv/http/git-php/repositories/',
+		'repo_directory' => '/path/to/the/repositories/folder/',
 		'repo_suffix' => '.git',
-		'git_binary' => '/usr/bin/git'
+		'git_binary' => '/path/to/git'
 	);
 
 	var $test = array(
