@@ -28,7 +28,7 @@
 					'null' => true,
 					'length' => 140
 				),
-				'created' => array(
+				'last_change' => array(
 					'type' => 'datetime',
 					'null' => true
 				)
@@ -40,26 +40,26 @@
 					'key' => 'primary',
 					'length' => 100,
 				),
-				'parent' => array(
+				'parents' => array(
 					'type' => 'array(string)',
 					'null' => true
 				),
-				'message' => array(
+				'subject' => array(
 					'type' => 'string',
 					'null' => true,
 					'length' => 500
 				),
-				'author_email' => array(
+				'author' => array(
 					'type' => 'string',
 					'null' => true,
 					'length' => 200,
 				),
-				'commiter_email' => array(
+				'email' => array(
 					'type' => 'string',
 					'null' => true,
 					'length' => 200
 				),
-				'created' => array(
+				'timestamp' => array(
 					'type' => 'datetime',
 					'null' => true
 				),

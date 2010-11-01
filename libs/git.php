@@ -31,9 +31,6 @@
 		*	</ul>
 		* @param integer <b>$limit</b> The count of repositories to return.
 		* @return array An array of repositories.
-		*
-		* TODO The <b>$limits</b> actually doesn't do anything. Make it work.
-		* TODO The <b>$conditions</b> array actually doesn't do anything. Make it work.
 		*/
 		public function getRepositories($conditions = array(), $limit = 0) {
 			if (!isset($this->config['repo_directory'])) return array();

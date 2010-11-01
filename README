@@ -1,0 +1,74 @@
+A CakePHP app to display information about git repositories.
+
+The main file of the application is the libs/git.php file that contains the
+Git Class, this class is responsible for php conecting with git. 
+The file is based on one whis is in the josegonzales project(http://github.com/josegonzalez/git-php)
+but I have rewritten almost all the code.
+
+To connect CakePHP with git I developed a datasource called GitSource, this datasource provides a
+connection to git for the models.
+Until now, I have developed 4 models which enable you to access to the git repositeries’ information. This models are: 
+
+- Repository:
+	This model represents a git repository. It has the next fields:
+		* name: The repository name.
+		* path: The absolute path to the repository.
+		* owner: The owner of the repository.
+		* description: The description for the respository (The file 'repo_dir/description').
+		* last_change: The date of the last change committed.
+	
+- Commit:
+	This model represents a commit into a git repository, it has the next fields:
+		* hash: The hash string of the commit.
+		* parents: An array of hash that represents the parents of this commit.
+		* subject: The commit message.
+		* author: The author of the commit.
+		* email: The commit author email.
+		* timestamp: The date when the commit was send.
+		* repository: The repository that owns the commit.
+	
+- GitFile:
+	This model represents a file into a git repository, it has the next fields:
+		* hash: The file checksum.
+		* perm: The file permissions.
+		* type: The file type ('blob' for regular files, 'tree' for directories).
+		* content: The file contents (only if it is a blob file).
+		* path: The path to the file relative to the repository directory.
+		* name: The file name.
+		* commit: The commit that owns the file.
+		* repository: The repository that owns the file.
+	
+- GitTag:
+	This model represents a tag for a git repository:
+		* hash: The commit hash of the tag.
+		* name: The tag name.
+		* repository: The repository that owns the tag.
+		
+==============================================================
+= USAGE
+==============================================================
+
+Before you begin, you need to set up the connection between cake and git.
+To do this, you need to change the next variables in the app/config/database.php file:
+
+	var $git = array(
+		'datasource' => 'git',
+		'repo_directory' => '/path/to/the/repositories/folder/', // You have to puth the path to your git repositories base folder here.
+		'repo_suffix' => '.git', // The suffix used for all the repositories. You may don't want to chenge it.
+		'git_binary' => '/path/to/git' // The path to the git executable, usually /usr/bin/git or /usr/local/bin/git in linux systems.
+	);
+
+The models can be used like any other model in cake. They support some
+of the common features, like 'limit' and 'conditions'.
+
+For example if you want to find all the repositories you can do:
+	$this->Repository->find('all');
+
+If you want only the first 4:
+	$this->Repository->find('all', array('limit' => 4));
+	
+If you want the last 10 commits for the repository 'git-proyect':
+	$this->Commit->find('all', array('conditions' => array('repository' => 'git-proyect'), 'limit' => 10));
+
+As simple like that. Remember always to include the models in the controller if it don't own
+it (using "var $uses = array('Model1', 'Model2');" in the controller class).
